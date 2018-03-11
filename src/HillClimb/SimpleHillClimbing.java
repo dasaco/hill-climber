@@ -30,7 +30,7 @@ public class SimpleHillClimbing {
 				point.set(0, point.get(0) - stepsize);
 			}
 		} else {
-			if (point.get(0) + stepsize < this.problem.getMaxValues().get(0)) {
+			if (point.get(0) + stepsize > this.problem.getMaxValues().get(0)) {
 				point.set(0, this.problem.getMaxValues().get(0));
 			} else {
 				point.set(0, point.get(0) + stepsize);
@@ -44,7 +44,7 @@ public class SimpleHillClimbing {
 				point.set(1, point.get(1) - stepsize);
 			}
 		} else {
-			if (point.get(1) + stepsize < this.problem.getMaxValues().get(1)) {
+			if (point.get(1) + stepsize > this.problem.getMaxValues().get(1)) {
 				point.set(1, this.problem.getMaxValues().get(1));
 			} else {
 				point.set(1, point.get(1) + stepsize);
@@ -55,7 +55,10 @@ public class SimpleHillClimbing {
 	}
 
 	public ArrayList<Double> findOptima(int iterations, int neighboars, double stepsize) {
-		ArrayList<Double> solutions = new ArrayList<>();
+		ArrayList<ArrayList<Double>> solutions = new ArrayList<>();
+		ArrayList<Double> solutionsResult = new ArrayList<>();
+		int solutionsCount = 0;
+		
 		
 		for (int itr = 0; itr < iterations; itr++) {
 			ArrayList<Double> bestSolutionPoint = this.initPoint(this.problem);
@@ -63,7 +66,8 @@ public class SimpleHillClimbing {
 			double bestSolutionResult = this.problem.Eval(bestSolutionPoint);			
 			boolean shouldContinue;
 			
-			System.out.println("-------------------------------------");
+			System.out.println();
+			System.out.println("----------------- New Iteration --------------------");
 			System.out.println("Starting at x: " + bestSolutionPoint.get(0) + ", y: " + bestSolutionPoint.get(1) + ". And result is: " + bestSolutionResult);
 			
 			do {
@@ -71,33 +75,58 @@ public class SimpleHillClimbing {
 				ArrayList<ArrayList<Double>> neighboarPoints = new ArrayList<ArrayList<Double>>();
 				ArrayList<Double> neighboarResults = new ArrayList<>();
 				
+				newSolutionPoint = alterPointRandomly(newSolutionPoint, stepsize);
+				
 				for (int n = 0; n < neighboars; n++) {
 					ArrayList<Double> neighboarPoint = alterPointRandomly(newSolutionPoint, stepsize);
 					neighboarResults.add(this.problem.Eval(neighboarPoint));
 					neighboarPoints.add(neighboarPoint);
+					solutionsCount++;
 				}
+				
+				System.out.println("Neigboars: " + neighboarResults);
 			
 				int maxIndex = SimpleHillClimbing.getMaxIndex(neighboarResults);
-				newSolutionPoint = neighboarPoints.get(maxIndex);
+				
+				if (this.problem.Eval(neighboarPoints.get(maxIndex)) > this.problem.Eval(newSolutionPoint)) {
+					newSolutionPoint = neighboarPoints.get(maxIndex);
+				}
+				
+				solutionsCount++;
+				
+				System.out.println("Going with the one with: " + neighboarResults.get(maxIndex));
 				
 				double newResult = this.problem.Eval(newSolutionPoint);
 				
-				if (bestSolutionResult < newResult) {
-					System.out.println("Better solution found. Continuing to climb.");
+				if (bestSolutionResult <= newResult) {
+					System.out.println("Better solution found. Continuing to climb. Rebasing on point: " + newSolutionPoint + ", where result is: " + newResult);
+					bestSolutionPoint = newSolutionPoint;
 					bestSolutionResult = newResult;
-					bestSolutionResult = this.problem.Eval(newSolutionPoint);
 					shouldContinue = true;
 				} else {
-					System.out.println("Got Stuck!");
-					System.out.println("Best points are x: " + bestSolutionPoint.get(0) + ", y: " + bestSolutionPoint.get(1) + ". And result is: " + bestSolutionResult);
+					System.out.println("Got Stuck! Old result was: " + bestSolutionResult + " and the new is " + newResult + ", didn't get better, so I'm stopping here.");
+					System.out.println("Therefore best points are x: " + bestSolutionPoint.get(0) + ", y: " + bestSolutionPoint.get(1) + ". And result is: " + bestSolutionResult);
 					shouldContinue = false;
 				}
 			} while (shouldContinue);
 
-			solutions.addAll(bestSolutionPoint);
+			solutions.add(bestSolutionPoint);
+			solutionsResult.add(bestSolutionResult);
 		}
 		
-		return solutions;
+		int maxIndex = SimpleHillClimbing.getMaxIndex(solutionsResult);
+		
+		System.out.println();
+		System.out.println("<<<<<<<<<<<<<<< Find Optima Function Finished >>>>>>>>>>>>>>>");
+		System.out.print("Iterations:" + iterations);
+		System.out.print(", Neighboars: " + neighboars);
+		System.out.print(", Stepsize: " + stepsize);
+		//System.out.println("Total solutions evaluated: " + solutionsCount);
+		
+		System.out.print(", Solutions: " + solutionsCount);
+		System.out.print(" -> Best: " + round(solutionsResult.get(maxIndex), 2));
+		
+		return solutions.get(maxIndex);
 	}
 	
 	public static int getMaxIndex(ArrayList<Double> inputArray){ 
@@ -111,14 +140,45 @@ public class SimpleHillClimbing {
 	    } 
 	    return maxIndex; 
 	  }
+	
+	public static double round(double value, int places) {
+	    if (places < 0) throw new IllegalArgumentException();
+
+	    long factor = (long) Math.pow(10, places);
+	    value = value * factor;
+	    long tmp = Math.round(value);
+	    return (double) tmp / factor;
+	}
 
 	public static void main(String[] args) {
 
-		Problem problem = new P1();
+		Problem problem = new RevAckley();
 
 		SimpleHillClimbing climber = new SimpleHillClimbing(problem);
 		
-		System.out.println(climber.findOptima(400, 100, 0.01));
+		climber.findOptima(10, 10, 0.1);
+//		climber.findOptima(10, 100, 0.1);
+//		climber.findOptima(10, 200, 0.1);
+//		
+//		climber.findOptima(100, 10, 0.1);
+//		climber.findOptima(100, 100, 0.1);
+//		climber.findOptima(100, 200, 0.1);
+//		
+//		climber.findOptima(200, 10, 0.1);
+//		climber.findOptima(200, 100, 0.1);
+//		climber.findOptima(200, 200, 0.1);
+//		
+//		climber.findOptima(10, 10, 0.01);
+//		climber.findOptima(10, 100, 0.01);
+//		climber.findOptima(10, 200, 0.01);
+//		
+//		climber.findOptima(100, 10, 0.01);
+//		climber.findOptima(100, 100, 0.01);
+//		climber.findOptima(100, 200, 0.01);
+//		
+//		climber.findOptima(200, 10, 0.01);
+//		climber.findOptima(200, 100, 0.01);
+//		climber.findOptima(200, 200, 0.01);
 	}
 
 }
